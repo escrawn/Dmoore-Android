@@ -1,5 +1,6 @@
 package com.dodhev.dmooretaskmanger;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -26,7 +27,8 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String DMOORE_REQUEST_URL = "http://alejandronaranjodev.com/DmooreWS.asmx/GetTaskSUserJSON";
+
+    private String DMOORE_REQUEST_URL;
     public static final String LOG_TAG = MainActivity.class.getSimpleName();
 
     @Override
@@ -34,23 +36,35 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         TaskAsyncTask task = new TaskAsyncTask();
         task.execute();
 
 
-
+        Log.d("On Create", "Method called");
     }
 
+    private int getUserId() {
+        Intent tasksActivity = getIntent();
+        int userID = tasksActivity.getIntExtra("userID", 0);
 
+        return userID;
+    }
 
     private void updateUi(ArrayList<Task> task) {
 
         ListView lv = (ListView) findViewById(R.id.listView);
-
-        final TaskAdapter adapter = new TaskAdapter(this,task);
+        final TaskAdapter adapter = new TaskAdapter(this, task);
 
         lv.setAdapter(adapter);
 
+        Log.d("update Ui", "Method called");
+
+    }
+
+    public void updateRequestUrl() {
+
+      
     }
 
     private class TaskAsyncTask extends AsyncTask<URL, Void, ArrayList<Task>> {
@@ -59,29 +73,33 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected ArrayList<Task> doInBackground(URL... urls) {
 
+            updateRequestUrl();
             URL url = createUrl(DMOORE_REQUEST_URL);
-
+            ArrayList<Task> tasks = new ArrayList<Task>();
             String jsonResponse = "";
+
             try {
                 jsonResponse = makeHttpRequest(url);
+                Log.d("URL", url.getAuthority());
+                tasks = extractFeatureFromJson(jsonResponse);
             } catch (IOException e) {
-                //Handle exception
+                Log.d("Problema", "Problema con makeHttpRequest");
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
 
-            ArrayList<Task> tasks = extractFeatureFromJson(jsonResponse);
 
+            Log.d("Do in background", "Method called");
             return tasks;
         }
 
+
         @Override
         protected void onPostExecute(ArrayList<Task> tasks) {
-
-            if(tasks == null){
-                return;
-            }
+            super.onPostExecute(tasks);
             updateUi(tasks);
-        }
 
+        }
 
         //Creamos la URL a partir del string
         private URL createUrl(String stringUrl) {
@@ -94,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(LOG_TAG, "Error creating url", exception);
                 return null;
             }
+            Log.d("CreateUrl", "Method called");
             return url;
         }
 
@@ -110,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
                     line = reader.readLine();
                 }
             }
+            Log.d("Read From stream", "Method called");
             return output.toString();
         }
 
@@ -120,22 +140,32 @@ public class MainActivity extends AppCompatActivity {
             InputStream inputStream = null;
 
             if (url == null) {
+                Log.d("URL_NULL", "URL IS NULL IN METHOD makeHttpRequest");
                 return jsonResponse;
+
             }
 
             try {
                 urlConnection = (HttpURLConnection) url.openConnection();
+                Log.d("11111", "11111111");
                 urlConnection.setRequestMethod("GET");
+                Log.d("222222", "2222");
                 urlConnection.setReadTimeout(10000);
+                Log.d("333333", "33333");
                 urlConnection.setConnectTimeout(15000);
+                Log.d("444444", "444444");
                 urlConnection.connect();
+                Log.d("5555555", "5555555");
+                Log.d("asdasdasd", urlConnection.getResponseMessage());
 
-                if (urlConnection.getResponseCode() == 200) {
-                    inputStream = urlConnection.getInputStream();
-                    jsonResponse = readFromStream(inputStream);
-                }
+                inputStream = urlConnection.getInputStream();
+                Log.d("6666666", "666666666");
+
+                jsonResponse = readFromStream(inputStream);
+                Log.d("JsonResponse", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+
             } catch (IOException e) {
-                // TODO: Handle the exception
+                Log.d("IOEXCEPTION",e.toString());
             } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
@@ -144,46 +174,48 @@ public class MainActivity extends AppCompatActivity {
                     inputStream.close();
                 }
             }
+            Log.d("JsonResponse",jsonResponse);
+            Log.d("MakeHttpResponse", "Method called");
+
             return jsonResponse;
         }
 
-        private ArrayList<Task> extractFeatureFromJson(String taskJson) {
+        private ArrayList<Task> extractFeatureFromJson(String taskJson) throws JSONException {
+
+            //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
             if (TextUtils.isEmpty(taskJson)) {
                 return null;
             }
+
+            ArrayList<Task> tasks = new ArrayList<>();
+            JSONObject featureObject = new JSONObject(taskJson);
+
             try {
-                JSONArray featureArray = new JSONArray(taskJson);
 
 
-                // If there are results in the features array
-                if (featureArray.length() > 0) {
+                JSONArray data = featureObject.getJSONArray("Data");
 
-                    // Extract out the first feature
-                    JSONObject firstFeature = featureArray.getJSONObject(0);
-                    ArrayList<Task> tasks = new ArrayList<Task>();
+                for (int i = 0; i < data.length(); i++) {
+                    JSONObject tasksOb = data.getJSONObject(i);
+                    int id = tasksOb.getInt("Id");
+                    String name = tasksOb.getString("Name");
+                    Log.d("NAME",name);
+                    String desc = tasksOb.getString("Desc");
+                    Log.d("Description",desc);
+                    Task task = new Task(id, name, desc);
+                    tasks.add(task);
 
-                    for (int i = 0; i < featureArray.length(); i++) {
-                        JSONObject taskObject = featureArray.getJSONObject(i);
-                        int id = taskObject.getInt("Id");
-                        String name = taskObject.getString("Name");
-                        String desc = taskObject.getString("Desc");
-                        Task task = new Task(id, name, desc);
-                        tasks.add(task);
-
-                    }
-
-
-                    return tasks;
                 }
 
 
-            } catch (JSONException e) {
-                Log.e(LOG_TAG, "Problem parsing the earthquake JSON results", e);
-            }
-            return null;
-        }
 
+            } catch (JSONException e) {
+                Log.e(LOG_TAG, "Problem parsing the taks JSON results", e);
+            }
+            Log.d("ExtractFeatureFromJson", "Method called");
+            return tasks;
+        }
 
 
     }

@@ -21,6 +21,23 @@ public class User {
         this.task = task;
     }
 
+    public User(int id){
+        this.id = id;
+    }
+
+    public User(int id,String userName){
+        this.id = id;
+        this.userName = userName;
+    }
+
+    public User(){
+        this.id = 0;
+        this.name = "";
+        this.userName = "";
+        this.task = null;
+    }
+
+
     public int getId() {
         return id;
     }
@@ -35,5 +52,21 @@ public class User {
 
     public List<Task> getTask() {
         return task;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public void setTask(List<Task> task) {
+        this.task = task;
     }
 }
